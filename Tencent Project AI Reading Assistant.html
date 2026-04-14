@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 阅读助手 · 微信读书</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
+
+  :root {
+    --wx-bg: #f5f5f0;
+    --wx-white: #ffffff;
+    --wx-black: #1a1a1a;
+    --wx-gray: #8a8a8a;
+    --wx-light-gray: #e8e8e4;
+    --wx-border: #e0e0da;
+    --wx-green: #07c160;
+    --wx-green-light: #e8f8ef;
+    --wx-accent: #3d7eff;
+    --wx-accent-light: #eff4ff;
+    --wx-orange: #ff6b35;
+    --wx-purple: #7c5cbf;
+    --wx-yellow: #f5a623;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: var(--wx-bg);
+    color: var(--wx-black);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP HEADER ── */
+  .header {
+    height: var(--header-h);
+    background: var(--wx-white);
+    border-bottom: 1px solid var(--wx-border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 100;
+  }
+
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #07c160, #05a050);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--wx-black);
+    letter-spacing: 0.5px;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--wx-border);
+  }
+
+  .header-book-title {
+    font-size: 14px;
+    color: var(--wx-gray);
+    font-weight: 400;
+  }
+
+  .header-book-name {
+    font-size: 14px;
+    color: var(--wx-black);
+    font-weight: 500;
+  }
+
+  .header-spacer { flex: 1; }
+
+  .ai-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .ai-dot {
+    width: 6px;
+    height: 6px;
+    background: #7fff7f;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--wx-white);
+    border-right: 1px solid var(--wx-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 16px 0 8px;
+  }
+
+  .sidebar-label {
+    font-size: 11px;
+    color: var(--wx-gray);
+    padding: 0 16px 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .book-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0;
+  }
+
+  .book-item:hover { background: var(--wx-bg); }
+  .book-item.active { background: var(--wx-green-light); }
+
+  .book-cover {
+    width: 32px;
+    height: 42px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+    text-align: center;
+    padding: 2px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.15);
+  }
+
+  .book-info { flex: 1; min-width: 0; }
+
+  .book-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--wx-black);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+  }
+
+  .book-series {
+    font-size: 11px;
+    color: var(--wx-gray);
+    margin-top: 2px;
+  }
+
+  .book-item.active .book-name { color: var(--wx-green); }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--wx-bg);
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--wx-white);
+    border-bottom: 1px solid var(--wx-border);
+    padding: 0 24px;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    padding: 14px 20px;
+    font-size: 14px;
+    color: var(--wx-gray);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--wx-black); }
+
+  .tab.active {
+    color: var(--wx-green);
+    border-bottom-color: var(--wx-green);
+    font-weight: 500;
+  }
+
+  /* ── PANEL ── */
+  .panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: none;
+  }
+
+  .panel.active { display: block; }
+
+  /* ── SUMMARY PANEL ── */
+  .summary-hero {
+    background: var(--wx-white);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 1px solid var(--wx-border);
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .summary-book-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .summary-cover {
+    width: 60px;
+    height: 80px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px;
+    line-height: 1.3;
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+
+  .summary-meta { flex: 1; }
+
+  .summary-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--wx-black);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .summary-author {
+    font-size: 13px;
+    color: var(--wx-gray);
+    margin-bottom: 10px;
+  }
+
+  .summary-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .tag-genre { background: #fff3e0; color: #e65100; }
+  .tag-series { background: var(--wx-accent-light); color: var(--wx-accent); }
+  .tag-ai { background: var(--wx-green-light); color: #05a050; }
+
+  .ai-summary-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--wx-gray);
+  }
+
+  .ai-icon {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 10px;
+  }
+
+  .summary-text {
+    font-size: 14px;
+    line-height: 1.9;
+    color: #333;
+    font-family: 'Noto Serif SC', serif;
+    border-left: 3px solid var(--wx-green);
+    padding-left: 16px;
+    margin-bottom: 16px;
+  }
+
+  .summary-stats {
+    display: flex;
+    gap: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--wx-border);
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--wx-black);
+  }
+
+  .stat-label { font-size: 11px; color: var(--wx-gray); }
+
+  /* SERIES OVERVIEW */
+  .series-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .series-card {
+    background: var(--wx-white);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--wx-border);
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .series-card:nth-child(2) { animation-delay: 0.1s; }
+  .series-card:nth-child(3) { animation-delay: 0.2s; }
+
+  .series-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wx-black);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .series-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .series-card-count {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .series-card-desc {
+    font-size: 12px;
+    color: var(--wx-gray);
+    line-height: 1.6;
+  }
+
+  /* ── HIGHLIGHTS PANEL ── */
+  .highlight-item {
+    background: var(--wx-white);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    border: 1px solid var(--wx-border);
+    border-left: 4px solid var(--wx-yellow);
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .highlight-item:nth-child(2) { animation-delay: 0.05s; border-left-color: var(--wx-orange); }
+  .highlight-item:nth-child(3) { animation-delay: 0.1s; border-left-color: var(--wx-accent); }
+  .highlight-item:nth-child(4) { animation-delay: 0.15s; border-left-color: var(--wx-purple); }
+  .highlight-item:nth-child(5) { animation-delay: 0.2s; border-left-color: var(--wx-green); }
+
+  .highlight-type {
+    font-size: 11px;
+    color: var(--wx-gray);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .highlight-content {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--wx-black);
+    margin-bottom: 8px;
+  }
+
+  .highlight-source {
+    font-size: 11px;
+    color: var(--wx-gray);
+  }
+
+  /* ── KNOWLEDGE GRAPH PANEL ── */
+  .graph-container {
+    background: var(--wx-white);
+    border-radius: 12px;
+    border: 1px solid var(--wx-border);
+    overflow: hidden;
+    margin-bottom: 16px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .graph-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--wx-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .graph-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wx-black);
+  }
+
+  .graph-canvas {
+    width: 100%;
+    height: 360px;
+    position: relative;
+    background: #fafafa;
+    overflow: hidden;
+  }
+
+  .graph-node {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-align: center;
+    line-height: 1.2;
+    padding: 4px;
+    z-index: 2;
+  }
+
+  .graph-node:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+
+  .graph-node-label {
+    position: absolute;
+    font-size: 10px;
+    color: var(--wx-gray);
+    white-space: nowrap;
+    text-align: center;
+    z-index: 1;
+  }
+
+  svg.graph-lines {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* ── NOTES PANEL ── */
+  .note-card {
+    background: var(--wx-white);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 12px;
+    border: 1px solid var(--wx-border);
+    animation: fadeUp 0.35s ease both;
+  }
+
+  .note-card:nth-child(2) { animation-delay: 0.1s; }
+  .note-card:nth-child(3) { animation-delay: 0.2s; }
+
+  .note-book-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--wx-bg);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--wx-gray);
+    margin-bottom: 12px;
+  }
+
+  .note-heading {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--wx-black);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .note-section { margin-bottom: 14px; }
+
+  .note-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wx-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  .note-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .note-point {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #444;
+  }
+
+  .note-point::before {
+    content: '·';
+    color: var(--wx-green);
+    font-size: 18px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+
+  .note-quote {
+    background: var(--wx-green-light);
+    border-left: 3px solid var(--wx-green);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #333;
+    font-style: italic;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wx-gray);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--wx-border);
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--wx-border); border-radius: 2px; }
+
+  /* ── TOOLTIP ── */
+  .node-tooltip {
+    position: fixed;
+    background: rgba(26,26,26,0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 200px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--wx-border);
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--wx-gray);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-icon">📖</div>
+    <div class="logo-text">微信读书</div>
+  </div>
+  <div class="header-divider"></div>
+  <span class="header-book-title">当前书单：</span>
+  <span class="header-book-name">法医秦明系列全集（20册）</span>
+  <div class="header-spacer"></div>
+  <div class="ai-badge">
+    <div class="ai-dot"></div>
+    AI 阅读助手
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">法医秦明系列</div>
+
+      <div class="book-item active" onclick="selectBook(this, '尸语者')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#c0392b,#922b21)">尸语者</div>
+        <div class="book-info">
+          <div class="book-name">尸语者（上下）</div>
+          <div class="book-series">主系列 · 第1册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '无声的证词')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#2c3e50,#1a252f)">无声证词</div>
+        <div class="book-info">
+          <div class="book-name">无声的证词</div>
+          <div class="book-series">主系列 · 第2册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '第十一根手指')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">第十一根手指</div>
+        <div class="book-info">
+          <div class="book-name">第十一根手指</div>
+          <div class="book-series">主系列 · 第3册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '清道夫')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#16a085,#0e6655)">清道夫</div>
+        <div class="book-info">
+          <div class="book-name">清道夫</div>
+          <div class="book-series">主系列 · 第4册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '幸存者')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#d35400,#a04000)">幸存者</div>
+        <div class="book-info">
+          <div class="book-name">幸存者</div>
+          <div class="book-series">主系列 · 第5册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '偷窥者')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#2980b9,#1a5276)">偷窥者</div>
+        <div class="book-info">
+          <div class="book-name">偷窥者</div>
+          <div class="book-series">主系列 · 第6册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '天谴者')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#f39c12,#d68910)">天谴者</div>
+        <div class="book-info">
+          <div class="book-name">天谴者</div>
+          <div class="book-series">主系列 · 第7册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '遗忘者')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#7f8c8d,#566573)">遗忘者</div>
+        <div class="book-info">
+          <div class="book-name">遗忘者</div>
+          <div class="book-series">主系列 · 第8册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '玩偶')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#e74c3c,#c0392b)">玩偶</div>
+        <div class="book-info">
+          <div class="book-name">玩偶</div>
+          <div class="book-series">主系列 · 第9册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '白卷')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#bdc3c7,#95a5a6)">白卷</div>
+        <div class="book-info">
+          <div class="book-name">白卷</div>
+          <div class="book-series">主系列 · 第10册</div>
+        </div>
+      </div>
+
+      <div class="book-item" onclick="selectBook(this, '逝者之书')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#1abc9c,#148f77)">逝者之书</div>
+        <div class="book-info">
+          <div class="book-name">逝者之书</div>
+          <div class="book-series">主系列 · 终章</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">燃烧的蜂鸟</div>
+      <div class="book-item" onclick="selectBook(this, '燃烧的蜂鸟')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#ff6b35,#e85d04)">燃烧蜂鸟</div>
+        <div class="book-info">
+          <div class="book-name">燃烧的蜂鸟</div>
+          <div class="book-series">蜂鸟系列 · 第1册</div>
+        </div>
+      </div>
+      <div class="book-item" onclick="selectBook(this, '迷案1985')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#e67e22,#ca6f1e)">迷案1985</div>
+        <div class="book-info">
+          <div class="book-name">迷案1985</div>
+          <div class="book-series">蜂鸟系列 · 第2册</div>
+        </div>
+      </div>
+      <div class="book-item" onclick="selectBook(this, '时空追凶1990')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#d35400,#b7430a)">时空追凶</div>
+        <div class="book-info">
+          <div class="book-name">时空追凶1990</div>
+          <div class="book-series">蜂鸟系列 · 第3册</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">守夜者系列</div>
+      <div class="book-item" onclick="selectBook(this, '守夜者1')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#2c3e50,#34495e)">守夜者1</div>
+        <div class="book-info">
+          <div class="book-name">罪案终结者的觉醒</div>
+          <div class="book-series">守夜者 · 第1册</div>
+        </div>
+      </div>
+      <div class="book-item" onclick="selectBook(this, '守夜者2')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#1a252f,#2c3e50)">守夜者2</div>
+        <div class="book-info">
+          <div class="book-name">黑暗潜能</div>
+          <div class="book-series">守夜者 · 第2册</div>
+        </div>
+      </div>
+      <div class="book-item" onclick="selectBook(this, '守夜者3')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#17202a,#1a252f)">守夜者3</div>
+        <div class="book-info">
+          <div class="book-name">生死盲点</div>
+          <div class="book-series">守夜者 · 第3册</div>
+        </div>
+      </div>
+      <div class="book-item" onclick="selectBook(this, '守夜者4')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#0d1117,#17202a)">守夜者4</div>
+        <div class="book-info">
+          <div class="book-name">天演</div>
+          <div class="book-series">守夜者 · 第4册</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">延伸阅读</div>
+      <div class="book-item" onclick="selectBook(this, '法医之书')">
+        <div class="book-cover" style="background:linear-gradient(135deg,#27ae60,#1e8449)">法医之书</div>
+        <div class="book-info">
+          <div class="book-name">法医之书</div>
+          <div class="book-series">非虚构 · 知识科普</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('summary', this)">📝 智能摘要</div>
+      <div class="tab" onclick="switchTab('highlights', this)">🔑 重点抽取</div>
+      <div class="tab" onclick="switchTab('graph', this)">🕸️ 关系梳理</div>
+      <div class="tab" onclick="switchTab('notes', this)">📒 结构化笔记</div>
+    </div>
+
+    <!-- SUMMARY PANEL -->
+    <div id="panel-summary" class="panel active">
+      <div class="summary-hero">
+        <div class="summary-book-header">
+          <div class="summary-cover" style="background:linear-gradient(135deg,#c0392b,#922b21)">法医秦明<br>尸语者</div>
+          <div class="summary-meta">
+            <div class="summary-title">《尸语者》</div>
+            <div class="summary-author">作者：法医秦明（秦明）· 2014年</div>
+            <div class="summary-tags">
+              <span class="tag tag-genre">法医悬疑</span>
+              <span class="tag tag-series">主系列 · 第1册</span>
+              <span class="tag tag-ai">AI 已解析</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-summary-label">
+          <div class="ai-icon">✦</div>
+          AI 生成摘要
+        </div>
+
+        <div class="summary-text">
+          《尸语者》是法医秦明系列的开篇之作，以真实法医工作为蓝本，通过多个独立案件串联起法医秦明的职业成长历程。本书最大的特点是"以死者之口说话"——尸体上的每一处痕迹都是无声的证词，法医通过科学手段还原真相。书中涵盖钝器伤、锐器伤、溺死、中毒等多种死亡类型的鉴定方法，将法医学知识与悬疑叙事巧妙融合，既有专业深度，又具备强烈的可读性。
+        </div>
+
+        <div class="summary-stats">
+          <div class="stat-item">
+            <div class="stat-num">12</div>
+            <div class="stat-label">收录案例数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">4</div>
+            <div class="stat-label">核心人物</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">8</div>
+            <div class="stat-label">法医知识点</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">★ 4.8</div>
+            <div class="stat-label">读者评分</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">全系列概览</div>
+
+      <div class="series-grid">
+        <div class="series-card">
+          <div class="series-card-title">
+            <div class="series-dot" style="background:#c0392b"></div>
+            法医秦明主系列
+          </div>
+          <div class="series-card-count" style="color:#c0392b">11册</div>
+          <div class="series-card-desc">以省厅法医秦明为主角，搭档大宝、林涛，从尸语者到逝者之书，记录职业成长与人性探索</div>
+        </div>
+        <div class="series-card">
+          <div class="series-card-title">
+            <div class="series-dot" style="background:#ff6b35"></div>
+            燃烧的蜂鸟系列
+          </div>
+          <div class="series-card-count" style="color:#ff6b35">3册</div>
+          <div class="series-card-desc">跨年代悬案叙事，1985/1990年代历史案件与现代调查交织，视野更宏观，节奏更快</div>
+        </div>
+        <div class="series-card">
+          <div class="series-card-title">
+            <div class="series-dot" style="background:#2c3e50"></div>
+            守夜者系列
+          </div>
+          <div class="series-card-count" style="color:#2c3e50">4册</div>
+          <div class="series-card-desc">新主角"罪案终结者"登场，天赋异禀但孤僻，4册完整记录觉醒、成长到蜕变的历程</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HIGHLIGHTS PANEL -->
+    <div id="panel-highlights" class="panel">
+
+      <div class="highlight-item">
+        <div class="highlight-type">⚡ 核心论点</div>
+        <div class="highlight-content">尸体是最诚实的证人。无论犯罪者伪造现场多么完美，身体留下的痕迹都会忠实记录真相——这是法医工作的根本逻辑。</div>
+        <div class="highlight-source">来源：《尸语者》· 序言及第一案</div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="highlight-type">🔬 法医知识点</div>
+        <div class="highlight-content">尸斑、尸僵、尸温是判断死亡时间的三大经典指标，但需结合环境温度、死亡原因综合研判，单一指标极易误判。</div>
+        <div class="highlight-source">来源：《法医之书》· 死亡时间推断章节</div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="highlight-type">💡 案件规律</div>
+        <div class="highlight-content">系列中超过70%的案件涉及"伪造现场"——犯罪者试图将他杀伪装成意外或自杀，而法医的价值正在于识破这层伪装。</div>
+        <div class="highlight-source">来源：跨册案件统计分析</div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="highlight-type">🎭 人物洞察</div>
+        <div class="highlight-content">秦明的成长轨迹：从初入职场时的理想主义，到直面无数死亡后的沉着冷静，再到系列末期对职业意义的深刻反思——法医不只是破案，更是替死者发声。</div>
+        <div class="highlight-source">来源：主系列纵向分析</div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="highlight-type">📊 系列对比</div>
+        <div class="highlight-content">燃烧的蜂鸟系列引入历史维度，证明犯罪的本质在不同年代具有共性；守夜者系列则将视角从"科学破案"转向"天赋与直觉"，构成对主系列的叙事补充。</div>
+        <div class="highlight-source">来源：跨系列主题对比</div>
+      </div>
+    </div>
+
+    <!-- GRAPH PANEL -->
+    <div id="panel-graph" class="panel">
+      <div class="graph-container">
+        <div class="graph-header">
+          <div class="graph-title">法医秦明系列 · 人物与概念关系图</div>
+          <span style="font-size:12px;color:#8a8a8a">悬停节点查看详情</span>
+        </div>
+        <div class="graph-canvas" id="graphCanvas">
+          <svg class="graph-lines" id="graphSvg"></svg>
+          <!-- nodes injected by JS -->
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>核心人物</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>搭档人物</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>法医技术</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div>案件类型</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>系列主题</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES PANEL -->
+    <div id="panel-notes" class="panel">
+
+      <div class="note-card">
+        <div class="note-book-tag">📗 《尸语者》· 主系列第1册</div>
+        <div class="note-heading">以死者之口说话——法医秦明的职业起点</div>
+
+        <div class="note-section">
+          <div class="note-section-title">核心要点</div>
+          <ul class="note-points">
+            <li class="note-point">全书以多个独立案件结构呈现，每案聚焦不同死亡类型的法医鉴定</li>
+            <li class="note-point">主角秦明以省厅法医身份出场，搭档刑警大宝（幽默担当）和痕检林涛</li>
+            <li class="note-point">核心方法论：现场勘查→尸检→证据比对→逻辑推理→锁定真相</li>
+            <li class="note-point">书中法医知识点均源于作者真实工作经历，专业性是系列最大竞争力</li>
+          </ul>
+        </div>
+
+        <div class="note-section">
+          <div class="note-section-title">经典场景</div>
+          <div class="note-quote">
+            "尸体不会撒谎。人可以伪造证词，可以销毁证据，但身体留下的每一处痕迹，都在用沉默的语言诉说真相。这就是我们法医存在的意义。"
+          </div>
+        </div>
+
+        <div class="note-section">
+          <div class="note-section-title">法医知识点</div>
+          <ul class="note-points">
+            <li class="note-point">钝器伤与锐器伤的伤口形态区分</li>
+            <li class="note-point">溺死的肺部特征与硅藻检验</li>
+            <li class="note-point">尸斑与尸僵的形成时间规律</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note-card">
+        <div class="note-book-tag">🔥 《燃烧的蜂鸟》· 蜂鸟系列第1册</div>
+        <div class="note-heading">跨越时代的追凶——历史案件的现代解读</div>
+
+        <div class="note-section">
+          <div class="note-section-title">核心要点</div>
+          <ul class="note-points">
+            <li class="note-point">脱离单一法医视角，引入多方调查力量，叙事维度更立体</li>
+            <li class="note-point">跨年代叙事结构：历史案发→现代调查→时代背景还原，三线并进</li>
+            <li class="note-point">主题从"科学破案"延伸至"历史还原与社会反思"</li>
+            <li class="note-point">节奏明显快于主系列，悬疑密度更高，适合推理爱好者</li>
+          </ul>
+        </div>
+
+        <div class="note-section">
+          <div class="note-section-title">与主系列的关联</div>
+          <ul class="note-points">
+            <li class="note-point">蜂鸟系列是主系列的世界观延伸，背景同属国内刑侦体系</li>
+            <li class="note-point">技术手段的时代对比：1985年的局限 vs 现代DNA/数字技术</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note-card">
+        <div class="note-book-tag">🌙 《守夜者》系列 · 4册整体</div>
+        <div class="note-heading">罪案终结者的成长弧——天赋与责任的碰撞</div>
+
+        <div class="note-section">
+          <div class="note-section-title">四册成长轨迹</div>
+          <ul class="note-points">
+            <li class="note-point">第1册·觉醒：发现天赋，但孤僻与自我怀疑并存</li>
+            <li class="note-point">第2册·黑暗潜能：极端压力下能力激发，道德边界开始模糊</li>
+            <li class="note-point">第3册·生死盲点：进入认知死局，突破自身局限</li>
+            <li class="note-point">第4册·天演：蜕变完成，以成熟姿态直面终极对手</li>
+          </ul>
+        </div>
+
+        <div class="note-section">
+          <div class="note-section-title">核心主题</div>
+          <div class="note-quote">
+            守夜者系列探讨的核心问题：当一个人拥有超乎常人的破案能力，他是否有权利用非常规手段追求正义？天赋是礼物还是诅咒？
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="node-tooltip" id="tooltip"></div>
+
+<script>
+// ── TAB SWITCHING ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'graph') setTimeout(drawGraph, 50);
+}
+
+// ── 全部20本书数据 ──
+const BOOKS = {
+  '尸语者': {
+    title: '尸语者（上下册）', author: '法医秦明（秦明）· 2014年',
+    series: '主系列 · 第1册', seriesColor: '#c0392b',
+    coverGrad: 'linear-gradient(135deg,#c0392b,#922b21)', coverText: '法医秦明\n尸语者',
+    tags: ['法医悬疑', '主系列·第1册'],
+    stats: { cases: 12, chars: 4, points: 8, score: '★ 4.8' },
+    summary: '《尸语者》是法医秦明系列的开篇之作，以真实法医工作为蓝本，通过多个独立案件串联起法医秦明的职业成长历程。尸体上的每一处痕迹都是无声的证词，法医通过科学手段还原真相。书中涵盖钝器伤、锐器伤、溺死、中毒等多种死亡类型的鉴定方法，将法医学知识与悬疑叙事巧妙融合，既有专业深度，又具备强烈的可读性。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '尸体是最诚实的证人。无论犯罪者伪造现场多么完美，身体留下的痕迹都会忠实记录真相——这是法医工作的根本逻辑。', source: '《尸语者》· 序言及第一案' },
+      { type: '🔬 法医知识', content: '钝器伤呈现挫裂创，边缘不整；锐器伤边缘整齐、创角明显——两者的伤口形态是法医鉴别他杀与意外的第一关键。', source: '《尸语者》· 第二案' },
+      { type: '💡 案件规律', content: '本书多数案件的真相藏在"反常细节"里：现场太干净、伤口与凶器不符、死者姿势不自然——异常即线索。', source: '《尸语者》· 综合分析' },
+      { type: '🎭 人物刻画', content: '大宝的幽默与秦明的严肃形成鲜明反差，两人的搭档化学反应贯穿全系列，是叙事节奏的重要调剂。', source: '《尸语者》· 人物塑造' },
+    ],
+    noteTag: '📗 《尸语者》· 主系列第1册', noteTitle: '以死者之口说话——法医秦明的职业起点',
+    notePoints: ['全书以多个独立案件结构呈现，每案聚焦不同死亡类型的法医鉴定', '主角秦明以省厅法医身份出场，搭档刑警大宝（幽默担当）和痕检林涛', '核心方法论：现场勘查→尸检→证据比对→逻辑推理→锁定真相', '书中法医知识点均源于作者真实工作经历，专业性是系列最大竞争力'],
+    noteExtra: '钝器伤与锐器伤的伤口形态区分；溺死的肺部特征与硅藻检验；尸斑与尸僵的形成时间规律',
+    quote: '"尸体不会撒谎。人可以伪造证词，可以销毁证据，但身体留下的每一处痕迹，都在用沉默的语言诉说真相。这就是我们法医存在的意义。"',
+  },
+  '无声的证词': {
+    title: '无声的证词', author: '法医秦明（秦明）· 2015年',
+    series: '主系列 · 第2册', seriesColor: '#2c3e50',
+    coverGrad: 'linear-gradient(135deg,#2c3e50,#1a252f)', coverText: '无声的\n证词',
+    tags: ['法医悬疑', '主系列·第2册'],
+    stats: { cases: 10, chars: 4, points: 7, score: '★ 4.7' },
+    summary: '《无声的证词》围绕沉默的受害者展开，尸体成为唯一的证人。秦明通过微物证据、伤口形态还原案发经过，最终让沉默的死者开口作证。本册在法医技术层面更进一步，引入毒理学与痕迹学的综合运用，是系列中证据链最为严密的一册。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '当所有目击者都沉默，尸体上的微物证据——毛发、纤维、土壤——就是唯一开口的证人。', source: '《无声的证词》· 核心主旨' },
+      { type: '🔬 法医知识', content: '毒理学检验需在死后72小时内完成关键样本提取，超时后部分毒物代谢物将消失，给鉴定带来极大困难。', source: '《无声的证词》· 毒理分析章节' },
+      { type: '💡 案件规律', content: '本册揭示"完美不在场证明"的破解之道：证明某人在场不需要目击证人，微物转移就是隐形的证词。', source: '《无声的证词》· 结案分析' },
+      { type: '🎭 人物成长', content: '秦明在本册中首次面对证据链不完整的困境，展现了法医在科学极限边缘的职业压力与坚守。', source: '《无声的证词》· 人物弧线' },
+    ],
+    noteTag: '📗 《无声的证词》· 主系列第2册', noteTitle: '微物证据——让沉默的证人开口',
+    notePoints: ['微物证据（毛发、纤维、花粉）的提取与比对是本册核心技术手段', '引入毒理学检验，拓展了第一册以伤口形态为主的鉴定维度', '案件结构更复杂，多条证据线索并行推进，最终汇聚指向真凶', '秦明首次经历"证据指向与直觉不符"的职业困境'],
+    noteExtra: '微物证据的采集与比对；毒物代谢时间窗口；痕迹转移规律',
+    quote: '"最有力的证词，往往来自那些永远无法开口说话的人。"',
+  },
+  '第十一根手指': {
+    title: '第十一根手指', author: '法医秦明（秦明）· 2015年',
+    series: '主系列 · 第3册', seriesColor: '#8e44ad',
+    coverGrad: 'linear-gradient(135deg,#8e44ad,#6c3483)', coverText: '第十一根\n手指',
+    tags: ['法医悬疑', '主系列·第3册'],
+    stats: { cases: 8, chars: 5, points: 9, score: '★ 4.8' },
+    summary: '《第十一根手指》以一根多余的手指为核心线索，引发连环悬案。这根手指成为整个案件的叙事锚点，秦明团队在扑朔迷离的证据链中抽丝剥茧，最终揭露一段尘封的罪恶。本册情节设计是系列中最具悬疑张力的一册，反转层次丰富。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '一个异常的物证——哪怕只是多出的一根手指——足以打开整个案件的潘多拉魔盒。物证的价值不在大小，在于它的"不该存在"。', source: '《第十一根手指》· 核心设定' },
+      { type: '🔬 法医知识', content: '多指畸形（六指）的遗传概率约为1/500-1/1000，法医可通过指骨X光片确认是否为同一个体的组织。', source: '《第十一根手指》· 法医鉴定章节' },
+      { type: '💡 情节亮点', content: '本册采用"层层剥皮"式叙事结构：每揭开一层表象，底下藏着更深的秘密，直到第三层才露出真正的犯罪动机。', source: '《第十一根手指》· 叙事分析' },
+      { type: '🎭 人物关系', content: '本册新引入的配角与秦明之间存在职业理念冲突，为后续系列的人物关系埋下伏笔。', source: '《第十一根手指》· 人物关系' },
+    ],
+    noteTag: '📗 《第十一根手指》· 主系列第3册', noteTitle: '异常物证——一根手指撬动的连环真相',
+    notePoints: ['以极具视觉冲击力的异常物证开篇，直接抓住读者注意力', '连环案件结构：表面上的独立案件，底层存在隐秘关联', '法医鉴定范围扩展至骨骼分析、遗传特征比对', '情节反转设计是全系列最为精巧的一册'],
+    noteExtra: '骨骼年龄鉴定；遗传特征的法医应用；多案关联分析方法',
+    quote: '"每一个不该存在的东西，背后都有一个不得不存在的理由。"',
+  },
+  '清道夫': {
+    title: '清道夫', author: '法医秦明（秦明）· 2016年',
+    series: '主系列 · 第4册', seriesColor: '#16a085',
+    coverGrad: 'linear-gradient(135deg,#16a085,#0e6655)', coverText: '清道夫',
+    tags: ['法医悬疑', '主系列·第4册'],
+    stats: { cases: 9, chars: 4, points: 8, score: '★ 4.7' },
+    summary: '《清道夫》中犯罪现场被人为清理得一尘不染，秦明面对几乎零证据的案件，从微观痕迹入手重建现场，追踪极度冷静、反侦查意识极强的犯罪者。本册是系列中对法医"无中生有"能力要求最高的一册，充分展示了现代法医技术的极限。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '再彻底的清理也会留下痕迹——漂白剂的气味、地板的擦拭纹路、空气中的微量血迹，犯罪现场永远无法被完全抹除。', source: '《清道夫》· 核心主旨' },
+      { type: '🔬 法医知识', content: 'Luminol（鲁米诺）试剂可检测被清洗后残留的极微量血迹，即便经过漂白处理，依然能在紫外线下发出蓝色荧光。', source: '《清道夫》· 现场勘查章节' },
+      { type: '💡 案件特色', content: '本案犯罪者具有专业的反侦查知识，案件本质上是一场"最强矛vs最强盾"的博弈——清道夫的专业 vs 法医的极限。', source: '《清道夫》· 案件分析' },
+      { type: '🎭 心理刻画', content: '秦明在本册中首次遭遇真正意义上的"对手级"犯罪者，职业压力与使命感在此达到系列阶段性高峰。', source: '《清道夫》· 人物心理' },
+    ],
+    noteTag: '📗 《清道夫》· 主系列第4册', noteTitle: '零证据现场——法医技术的极限挑战',
+    notePoints: ['反侦查犯罪者带来的"零证据现场"是本册最大叙事张力来源', 'Luminol血迹检验、气相色谱仪等高端技术首次在系列中详细呈现', '犯罪者心理画像贯穿全书，行为分析与法医鉴定双线并进', '结局揭示犯罪者身份时，前文埋下的细节全部形成呼应'],
+    noteExtra: 'Luminol荧光检验原理；气相色谱-质谱联用技术；犯罪现场重建方法论',
+    quote: '"他以为擦干净了一切，却不知道，科学能看见肉眼看不见的世界。"',
+  },
+  '幸存者': {
+    title: '幸存者', author: '法医秦明（秦明）· 2016年',
+    series: '主系列 · 第5册', seriesColor: '#d35400',
+    coverGrad: 'linear-gradient(135deg,#d35400,#a04000)', coverText: '幸存者',
+    tags: ['法医悬疑', '主系列·第5册'],
+    stats: { cases: 8, chars: 5, points: 7, score: '★ 4.6' },
+    summary: '《幸存者》罕见地从幸存者视角切入，秦明不仅要还原案件，还要保护仍处于危险中的幸存者。双线并行的叙事结构使本册紧张感倍增——法医的调查与幸存者的逃亡同步推进，真相与危险同时逼近。',
+    highlights: [
+      { type: '⚡ 叙事创新', content: '系列首次引入"幸存者视角"，读者与幸存者同步经历恐惧与逃亡，主观情感代入感是本册最大特色。', source: '《幸存者》· 叙事结构分析' },
+      { type: '🔬 法医知识', content: '活体损伤鉴定与死后损伤的区别在于出血反应——活体有生活反应（红肿、渗出），死后伤口则没有。', source: '《幸存者》· 活体鉴定章节' },
+      { type: '💡 案件特色', content: '双线叙事带来的信息差是本册最大悬疑驱动力：读者知道的比秦明多，但又不如幸存者了解危险的真实面目。', source: '《幸存者》· 叙事分析' },
+      { type: '🎭 情感深度', content: '幸存者的心理创伤与自我怀疑为本册增添了罕见的情感厚度，使法医破案之外有了更深的人文关怀。', source: '《幸存者》· 人物塑造' },
+    ],
+    noteTag: '📗 《幸存者》· 主系列第5册', noteTitle: '幸存者的证词——双线叙事下的真相追逐',
+    notePoints: ['系列唯一以幸存者为核心视角的一册，叙事维度更立体', '活体鉴定与死亡鉴定的比较分析贯穿全书', '双线叙事（调查线+逃亡线）制造持续紧张感', '结局对幸存者心理状态的处理体现了作者的人文关怀'],
+    noteExtra: '活体损伤鉴定；心理创伤与证词可信度；双线叙事结构设计',
+    quote: '"活下来，不是终点，而是新的战场的起点。"',
+  },
+  '偷窥者': {
+    title: '偷窥者', author: '法医秦明（秦明）· 2017年',
+    series: '主系列 · 第6册', seriesColor: '#2980b9',
+    coverGrad: 'linear-gradient(135deg,#2980b9,#1a5276)', coverText: '偷窥者',
+    tags: ['法医悬疑', '主系列·第6册'],
+    stats: { cases: 9, chars: 4, points: 8, score: '★ 4.7' },
+    summary: '《偷窥者》以隐秘的窥视行为为核心，深入探讨犯罪者的心理异常。秦明从行为画像切入，结合法医证据锁定嫌疑人。本册是系列中心理分析比重最高的一册，将犯罪心理学与法医鉴定深度融合，开创了系列新的叙事维度。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '偷窥行为是一种权力幻想的具现化——犯罪者通过"看而不被看见"建立虚假的控制感，这种心理往往是暴力犯罪的前驱信号。', source: '《偷窥者》· 心理分析核心' },
+      { type: '🔬 法医知识', content: '犯罪现场分析（CSA）不仅分析物证，还通过犯罪者的行为模式——如物品摆放、路径选择——进行心理画像。', source: '《偷窥者》· 行为分析章节' },
+      { type: '💡 案件特色', content: '本案的关键突破来自"行为证据"而非物证——犯罪者的固定作案模式暴露了他的心理特征，最终成为定罪依据。', source: '《偷窥者》· 案件分析' },
+      { type: '🎭 社会反思', content: '本册借犯罪者之口引发对"隐私边界"的深层思考：在数字时代，偷窥行为的定义与危害已远超物理空间。', source: '《偷窥者》· 社会议题' },
+    ],
+    noteTag: '📗 《偷窥者》· 主系列第6册', noteTitle: '行为画像——犯罪心理学与法医学的交汇',
+    notePoints: ['犯罪心理学首次成为与法医鉴定并列的核心破案手段', '行为证据（模式分析）与物证并用，拓展了系列的证据维度', '对偷窥心理的深度剖析兼具学术性与可读性', '本册对后续《玩偶》中犯罪美学主题有承上启下作用'],
+    noteExtra: '犯罪心理画像技术；行为模式分析；侵入性行为的法律界定',
+    quote: '"他以为自己是猎人，却不知道，他留下的每一个脚印，都在告诉我们他是谁。"',
+  },
+  '天谴者': {
+    title: '天谴者', author: '法医秦明（秦明）· 2017年',
+    series: '主系列 · 第7册', seriesColor: '#f39c12',
+    coverGrad: 'linear-gradient(135deg,#f39c12,#d68910)', coverText: '天谴者',
+    tags: ['法医悬疑', '主系列·第7册'],
+    stats: { cases: 8, chars: 5, points: 8, score: '★ 4.7' },
+    summary: '《天谴者》中犯罪者以"替天行道"为名实施犯罪，秦明在破案同时直面深刻的道德困境——受害者是否真的罪有应得？本册是系列中伦理思辨比重最高的一册，将法律正义与道德正义的冲突推向极点。',
+    highlights: [
+      { type: '⚡ 道德命题', content: '法律正义与道德正义之间存在灰色地带：当法律无法惩处真正的恶人时，以私刑替天行道的"天谴者"是英雄还是罪犯？', source: '《天谴者》· 核心主题' },
+      { type: '🔬 法医知识', content: '仪式化犯罪现场的布置方式往往透露犯罪者的深层动机——有序的摆放意味着预谋，混乱则指向激情犯罪。', source: '《天谴者》· 现场分析' },
+      { type: '💡 叙事张力', content: '本册最大张力来源于读者的道德站队困境：你理解天谴者的逻辑，但无法认同他的方式——这种矛盾感贯穿全书。', source: '《天谴者》· 叙事设计' },
+      { type: '🎭 秦明成长', content: '本册是秦明价值观受到最大冲击的一册，他必须在职业职责与内心认同之间做出明确抉择。', source: '《天谴者》· 人物弧线' },
+    ],
+    noteTag: '📗 《天谴者》· 主系列第7册', noteTitle: '替天行道——法律与道德的边界之战',
+    notePoints: ['以"正义私刑"为核心议题，是系列中伦理深度最高的一册', '犯罪者动机的正当性与手段的非法性构成叙事核心张力', '秦明价值观的动摇与坚守是本册最重要的人物成长节点', '对中国司法现实的隐性批判使本册具有超越类型小说的社会价值'],
+    noteExtra: '仪式性犯罪现场分析；犯罪动机的法律与道德双重评估；预谋与激情犯罪的鉴别',
+    quote: '"法律不是道德，但没有法律，道德就会变成最危险的武器。"',
+  },
+  '遗忘者': {
+    title: '遗忘者', author: '法医秦明（秦明）· 2018年',
+    series: '主系列 · 第8册', seriesColor: '#7f8c8d',
+    coverGrad: 'linear-gradient(135deg,#7f8c8d,#566573)', coverText: '遗忘者',
+    tags: ['法医悬疑', '主系列·第8册'],
+    stats: { cases: 7, chars: 5, points: 7, score: '★ 4.6' },
+    summary: '《遗忘者》以记忆与遗忘为核心主题，涉及心理操控与身份迷失。秦明在真假证词构成的迷雾中寻找真实的死亡轨迹。本册引入认知心理学视角，探讨记忆的可塑性如何成为犯罪的工具与障碍。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '记忆不是录像机，而是会被改写的文字——目击证人的陈述受暗示、情绪、时间的影响，可信度远低于大众认知。', source: '《遗忘者》· 认知心理学核心' },
+      { type: '🔬 法医知识', content: '法医精神病学鉴定需区分"真性遗忘"（器质性损伤导致）与"假性遗忘"（心理防御机制），两者在物证层面有不同表现。', source: '《遗忘者》· 精神鉴定章节' },
+      { type: '💡 案件特色', content: '本案核心谜题是：当唯一目击者声称"什么都不记得"，法医如何在没有证词的情况下仅靠物证还原真相？', source: '《遗忘者》· 案件设定' },
+      { type: '🎭 主题延伸', content: '遗忘不只是个体的心理防御，在本册中也隐喻社会对某些罪行的集体沉默与回避。', source: '《遗忘者》· 主题分析' },
+    ],
+    noteTag: '📗 《遗忘者》· 主系列第8册', noteTitle: '记忆的谎言——认知心理学与法医鉴定',
+    notePoints: ['记忆可塑性与证词可信度是本册核心议题', '法医精神病学鉴定首次成为破案关键手段', '在零证词环境下完全依赖物证重建真相的方法论展示', '个体遗忘与社会遗忘的双重主题隐喻'],
+    noteExtra: '记忆的可塑性与暗示效应；法医精神病学鉴定标准；证词可信度评估',
+    quote: '"遗忘是人类最温柔的自我保护，也是真相最顽固的敌人。"',
+  },
+  '玩偶': {
+    title: '玩偶', author: '法医秦明（秦明）· 2018年',
+    series: '主系列 · 第9册', seriesColor: '#e74c3c',
+    coverGrad: 'linear-gradient(135deg,#e74c3c,#c0392b)', coverText: '玩偶',
+    tags: ['法医悬疑', '主系列·第9册'],
+    stats: { cases: 8, chars: 4, points: 9, score: '★ 4.8' },
+    summary: '《玩偶》中受害者被摆布成特定姿势，呈现强烈的仪式感与"犯罪美学"。秦明从这种病态的审美切入，分析犯罪者的扭曲心理。本册是系列中视觉冲击力最强、心理分析最深入的一册，深刻探讨了控制欲与物化他人的极端心理。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '将他人"玩偶化"是极端控制欲的最终表达——犯罪者通过摆布无法反抗的受害者，实现对现实世界中失控感的补偿。', source: '《玩偶》· 犯罪心理核心' },
+      { type: '🔬 法医知识', content: '死后体位的改变可以通过尸斑位置与实际体位的矛盾来鉴别——如果尸斑在背部，但尸体呈俯卧位，说明死后曾被移动。', source: '《玩偶》· 死后移位鉴定' },
+      { type: '💡 案件特色', content: '本案现场的仪式感本身就是"犯罪者的签名"——通过解读这种病态美学，秦明比任何指纹更快锁定了犯罪者的心理类型。', source: '《玩偶》· 案件分析' },
+      { type: '🎭 社会议题', content: '本册借"玩偶化"隐喻对物化与控制的深层批判，是系列中社会议题最具当代性的一册。', source: '《玩偶》· 主题延伸' },
+    ],
+    noteTag: '📗 《玩偶》· 主系列第9册', noteTitle: '犯罪美学——极端控制欲的病态表达',
+    notePoints: ['"犯罪现场即犯罪者签名"的理念在本册得到最极致的呈现', '死后体位移动的法医鉴定方法详细展示', '犯罪美学的心理根源分析深入且严谨', '视觉冲击力与心理深度的平衡是本册最大叙事成就'],
+    noteExtra: '死后体位移动鉴定；仪式性犯罪现场分析；极端控制型人格的行为特征',
+    quote: '"他把她摆成自己想要的样子，却不知道，那个姿势就是他亲手写下的认罪书。"',
+  },
+  '白卷': {
+    title: '白卷', author: '法医秦明（秦明）· 2019年',
+    series: '主系列 · 第10册', seriesColor: '#bdc3c7',
+    coverGrad: 'linear-gradient(135deg,#bdc3c7,#95a5a6)', coverText: '白卷',
+    tags: ['法医悬疑', '主系列·第10册'],
+    stats: { cases: 6, chars: 4, points: 8, score: '★ 4.7' },
+    summary: '《白卷》中案件线索几乎为零，秦明面对一张"白卷"，从无到有重建证据链。这是系列中对法医"极限能力"要求最高的一册，也是叙事节奏最慢、思考密度最高的一册，适合对法医学有一定基础的读者。',
+    highlights: [
+      { type: '⚡ 核心论点', content: '所谓"白卷"，不是真的什么都没有——而是线索隐藏得太深，超出常规检验手段的感知范围。突破需要方法论的创新。', source: '《白卷》· 核心设定' },
+      { type: '🔬 法医知识', content: '同位素分析可以追溯人体组织中的元素比例，进而推断死者的地域来源、饮食习惯，甚至生前的居住迁移轨迹。', source: '《白卷》· 前沿技术章节' },
+      { type: '💡 案件特色', content: '本册体现了"负空间"侦查逻辑：当正面证据缺失时，通过分析"应该有但没有"的痕迹，反向锁定真相。', source: '《白卷》· 方法论分析' },
+      { type: '🎭 职业境界', content: '白卷是秦明职业生涯中遭遇的最大挑战，也是他从"优秀法医"成长为"顶级法医"的关键节点。', source: '《白卷》· 人物弧线' },
+    ],
+    noteTag: '📗 《白卷》· 主系列第10册', noteTitle: '零线索破案——法医极限能力的终极考验',
+    notePoints: ['"负空间"侦查逻辑：通过缺失痕迹反向推理是本册核心方法论', '同位素分析等前沿法医技术首次在系列中完整呈现', '最慢节奏、最高思考密度，是系列中最考验读者的一册', '秦明职业成长的关键节点，为终章《逝者之书》做情感铺垫'],
+    noteExtra: '同位素地理溯源；负空间侦查方法论；极端低证据环境下的鉴定策略',
+    quote: '"白卷不是答案，是一道等待我用整个职业生涯来解开的谜题。"',
+  },
+  '逝者之书': {
+    title: '逝者之书', author: '法医秦明（秦明）· 2020年',
+    series: '主系列 · 终章', seriesColor: '#1abc9c',
+    coverGrad: 'linear-gradient(135deg,#1abc9c,#148f77)', coverText: '逝者之书',
+    tags: ['法医悬疑', '主系列·终章'],
+    stats: { cases: 10, chars: 6, points: 10, score: '★ 4.9' },
+    summary: '《逝者之书》是法医秦明主系列的收官之作，以更宏观的视角回顾法医职业的意义。全书案件与秦明个人成长形成深度呼应，是对整个系列精神内核"替死者发声"的最终诠释。情感厚度与专业深度在本册达到系列顶峰。',
+    highlights: [
+      { type: '⚡ 终章主题', content: '逝者之书是秦明为所有他服务过的死者写下的一本书——法医不只是技术工作者，更是替那些永远无法开口的人留下存在过的证明。', source: '《逝者之书》· 主旨升华' },
+      { type: '🔬 法医哲学', content: '每一具尸体都曾是一个有名字、有故事的人。法医的职责，是在科学之外，也还原这个人最后的尊严。', source: '《逝者之书》· 职业哲学' },
+      { type: '💡 叙事设计', content: '收官之作采用"回望式"结构：新案件与历史案件交织，秦明的每一次选择都与过去的某个时刻形成对话。', source: '《逝者之书》· 叙事结构' },
+      { type: '🎭 系列总结', content: '秦明在终章完成了从"职业法医"到"生命见证者"的最终蜕变，这是整个主系列人物弧线的完美收束。', source: '《逝者之书》· 人物完结' },
+    ],
+    noteTag: '📗 《逝者之书》· 主系列终章', noteTitle: '替死者留存——法医职业的终极意义',
+    notePoints: ['主系列收官之作，情感厚度是全系列最高峰', '回望式叙事结构使新案件与系列历史形成深度对话', '秦明人物弧线的完美收束：从职业法医到生命见证者', '对"替死者发声"这一系列精神内核的最终诠释与升华'],
+    noteExtra: '法医职业伦理的哲学反思；回望式叙事结构；系列角色弧线的收束技法',
+    quote: '"每一个逝去的人，都值得被记住。这本书，是我欠他们的。"',
+  },
+  '燃烧的蜂鸟': {
+    title: '燃烧的蜂鸟', author: '法医秦明（秦明）· 2018年',
+    series: '蜂鸟系列 · 第1册', seriesColor: '#ff6b35',
+    coverGrad: 'linear-gradient(135deg,#ff6b35,#e85d04)', coverText: '燃烧的\n蜂鸟',
+    tags: ['法医悬疑', '蜂鸟系列·第1册'],
+    stats: { cases: 8, chars: 5, points: 7, score: '★ 4.6' },
+    summary: '《燃烧的蜂鸟》是法医秦明开创的新系列第一册，新主角登场，以高智商罪案为核心，节奏更快、视角更广，跳出法医单一视角，引入多方博弈。本册奠定了蜂鸟系列"智力对抗"的基本格调。',
+    highlights: [
+      { type: '⚡ 系列新风', content: '蜂鸟系列最大的突破是"去中心化"叙事——没有绝对主角，犯罪者、调查者、旁观者的视角轮换，制造更立体的信息博弈。', source: '《燃烧的蜂鸟》· 叙事创新' },
+      { type: '🔬 技术视角', content: '本册大量引入数字取证概念：手机信号轨迹、监控数据分析、社交网络画像，展现现代刑侦从物证到数据证据的范式转变。', source: '《燃烧的蜂鸟》· 技术章节' },
+      { type: '💡 节奏特色', content: '相比主系列每案10-20页的细腻节奏，蜂鸟系列章节更短、反转更快，更接近当代网文悬疑的叙事密度。', source: '《燃烧的蜂鸟》· 节奏分析' },
+      { type: '🎭 新角色', content: '新主角的性格与秦明形成鲜明对比——更冲动、更感性、更愿意打破规则，代表了刑侦下一代的不同价值观。', source: '《燃烧的蜂鸟》· 人物塑造' },
+    ],
+    noteTag: '🔥 《燃烧的蜂鸟》· 蜂鸟系列第1册', noteTitle: '智力博弈——多视角叙事的新格局',
+    notePoints: ['多视角叙事打破主系列单一法医视角的格局', '数字证据与传统物证的结合代表刑侦现代化转型', '更快节奏、更高悬疑密度，拓展了系列读者群', '新主角与秦明的对比隐含对"规则与变通"的哲学探讨'],
+    noteExtra: '数字取证基础；多视角叙事技法；现代刑侦数据化趋势',
+    quote: '"蜂鸟的翅膀看不见，但它的每一次振动都在改变气流。"',
+  },
+  '迷案1985': {
+    title: '迷案1985', author: '法医秦明（秦明）· 2019年',
+    series: '蜂鸟系列 · 第2册', seriesColor: '#e67e22',
+    coverGrad: 'linear-gradient(135deg,#e67e22,#ca6f1e)', coverText: '迷案\n1985',
+    tags: ['历史悬疑', '蜂鸟系列·第2册'],
+    stats: { cases: 6, chars: 6, points: 8, score: '★ 4.7' },
+    summary: '《迷案1985》聚焦1985年的旧案，跨越时空的悬案将历史现场与现代调查交织。在没有DNA技术、没有数字记录的年代，一桩案件如何被埋藏，又如何在30年后被重新揭开——时代局限与历史真相的张力是本册最大看点。',
+    highlights: [
+      { type: '⚡ 历史维度', content: '1985年的刑侦条件：没有DNA检验、没有数字化档案、目击者记忆已模糊——在技术匮乏的年代，正义如何实现？', source: '《迷案1985》· 历史背景' },
+      { type: '🔬 时代对比', content: '同一现场，30年前用石膏足迹翻模，30年后用三维激光扫描还原——技术演进对证据保存与还原能力的影响是本册核心议题。', source: '《迷案1985》· 技术对比' },
+      { type: '💡 冷案特色', content: '冷案最大的挑战不是证据消失，而是记忆的演化：当年的目击者今天的描述，已经不知被多少次"记忆重构"所改写。', source: '《迷案1985》· 冷案分析' },
+      { type: '🎭 历史人文', content: '本册在悬疑外壳下包裹着1980年代中国社会的真实切片，犯罪背后的时代背景赋予本册超越类型小说的文学价值。', source: '《迷案1985》· 人文价值' },
+    ],
+    noteTag: '🔥 《迷案1985》· 蜂鸟系列第2册', noteTitle: '时代局限下的正义——冷案重启的历史维度',
+    notePoints: ['跨年代叙事：1985案发现场与当代调查的时空交织', '技术演进对比展现刑侦能力的历史变迁', '冷案记忆演化问题的深度分析', '1980年代社会背景的真实还原为本册增添文学厚度'],
+    noteExtra: '冷案处理方法论；记忆演化与证词时效性；历史刑侦技术回顾',
+    quote: '"时间能抹去痕迹，但抹不去真相本身的重量。"',
+  },
+  '时空追凶1990': {
+    title: '时空追凶1990', author: '法医秦明（秦明）· 2020年',
+    series: '蜂鸟系列 · 第3册', seriesColor: '#d35400',
+    coverGrad: 'linear-gradient(135deg,#d35400,#b7430a)', coverText: '时空追凶\n1990',
+    tags: ['历史悬疑', '蜂鸟系列·第3册'],
+    stats: { cases: 7, chars: 6, points: 8, score: '★ 4.7' },
+    summary: '《时空追凶1990》延续跨年代叙事，将1990年代的案件线索与现代技术手段对撞，展现改革开放初期特定时代背景下的犯罪生态。本册是蜂鸟系列中时代感最强、社会背景最丰富的一册。',
+    highlights: [
+      { type: '⚡ 时代背景', content: '1990年代是中国社会急剧转型期，经济浪潮、人口流动、法制初建——这个特定时代孕育了独特的犯罪生态，也造就了当时刑侦的特殊困境。', source: '《时空追凶1990》· 时代背景' },
+      { type: '🔬 技术跨越', content: '1990年代中国刑侦开始引入指纹自动识别系统（AFIS），但数据库覆盖极为有限——本册完整还原了这一技术过渡期的现实局限。', source: '《时空追凶1990》· 技术史还原' },
+      { type: '💡 叙事创新', content: '本册在时空交织的基础上增加了"历史档案重读"结构——以当年的案卷记录为线索，展示历史文本与现代解读之间的落差。', source: '《时空追凶1990》· 叙事结构' },
+      { type: '🎭 系列收官', content: '作为蜂鸟三部曲终章，本册在解决主案的同时，完成了对"历史如何影响当下"这一系列母题的最终回应。', source: '《时空追凶1990》· 系列收官' },
+    ],
+    noteTag: '🔥 《时空追凶1990》· 蜂鸟系列第3册', noteTitle: '转型时代的罪与罚——历史与现代的终极对话',
+    notePoints: ['1990年代社会转型背景的深度还原', '中国刑侦技术发展史的文学化呈现', '历史案卷重读结构带来独特的叙事层次感', '蜂鸟三部曲的主题收束：历史的重量与当下的责任'],
+    noteExtra: '指纹自动识别系统（AFIS）发展史；历史档案的证据价值；社会转型与犯罪生态的关联',
+    quote: '"1990年的那个人以为时间是他的盟友，却不知道，时间最终站在了真相这边。"',
+  },
+  '守夜者1': {
+    title: '守夜者1·罪案终结者的觉醒', author: '法医秦明（秦明）· 2019年',
+    series: '守夜者系列 · 第1册', seriesColor: '#2c3e50',
+    coverGrad: 'linear-gradient(135deg,#2c3e50,#34495e)', coverText: '守夜者\n觉醒',
+    tags: ['刑侦悬疑', '守夜者·第1册'],
+    stats: { cases: 7, chars: 4, points: 7, score: '★ 4.6' },
+    summary: '《守夜者1》引入全新主角"罪案终结者"，天赋异禀却孤僻难处，觉醒之路充满挫折与自我怀疑。与秦明系列的"科学破案"不同，守夜者系列探索"直觉与天赋"在刑侦中的边界，是系列风格的重要转变。',
+    highlights: [
+      { type: '⚡ 新主角设定', content: '罪案终结者的核心设定：超强的模式识别能力让他能在常人看不见关联的地方发现规律，但这种能力与正常社交完全对立。', source: '《守夜者1》· 人物设定' },
+      { type: '🔬 方法论对比', content: '守夜者的破案方式与秦明形成鲜明对比：秦明是"证据→结论"的归纳法，守夜者是"直觉→验证"的演绎法，两者各有盲区。', source: '《守夜者1》· 方法论分析' },
+      { type: '💡 成长困境', content: '天赋是礼物还是诅咒？守夜者的觉醒不是能力的突破，而是接受自己"与众不同"这个事实，这是本册最核心的情感主题。', source: '《守夜者1》· 成长主题' },
+      { type: '🎭 系列铺垫', content: '本册结尾埋下的谜题将在后三册中逐步展开，是守夜者系列最重要的叙事基础。', source: '《守夜者1》· 系列铺垫' },
+    ],
+    noteTag: '🌙 《守夜者1》· 守夜者系列第1册', noteTitle: '天赋的觉醒——与众不同的代价',
+    notePoints: ['全新主角体系：从科学法医到天赋型直觉侦探的范式转变', '归纳法（秦明）vs 演绎法（守夜者）的方法论对比', '天赋与社交障碍的共生关系是本册核心人物困境', '系列叙事基础的完整铺垫为后三册留下丰富空间'],
+    noteExtra: '刑侦直觉的认知心理学基础；模式识别能力的神经科学背景；演绎法在刑侦中的应用',
+    quote: '"他能看见别人看不见的，却看不见别人都能看见的。"',
+  },
+  '守夜者2': {
+    title: '守夜者2·黑暗潜能', author: '法医秦明（秦明）· 2019年',
+    series: '守夜者系列 · 第2册', seriesColor: '#1a252f',
+    coverGrad: 'linear-gradient(135deg,#1a252f,#2c3e50)', coverText: '守夜者\n黑暗潜能',
+    tags: ['刑侦悬疑', '守夜者·第2册'],
+    stats: { cases: 8, chars: 5, points: 8, score: '★ 4.7' },
+    summary: '《守夜者2》中主角深入黑暗案件，潜能在极端压力下被激发，但道德边界开始模糊。本册是守夜者系列中黑暗程度最高的一册，直面"为了正义，能走多远"这一终极命题。',
+    highlights: [
+      { type: '⚡ 道德边界', content: '当正确的手段无法得到正确的结果，守夜者开始考虑"非常规手段"——这种滑坡是本册叙事最危险也最吸引人的地方。', source: '《守夜者2》· 核心冲突' },
+      { type: '🔬 能力激发', content: '极端压力下的认知状态（心流状态）会暂时突破日常能力上限，守夜者的"黑暗潜能"有其认知神经科学的现实基础。', source: '《守夜者2》· 能力机制' },
+      { type: '💡 叙事张力', content: '本册最大张力来源：读者为守夜者的能力激发感到兴奋，同时为他的道德滑坡感到不安——这两种情绪同时存在，无法调和。', source: '《守夜者2》· 叙事设计' },
+      { type: '🎭 关系演变', content: '守夜者与队友之间的信任危机在本册达到阶段性高峰，为第三册的"盲点"埋下伏笔。', source: '《守夜者2》· 人际关系' },
+    ],
+    noteTag: '🌙 《守夜者2》· 守夜者系列第2册', noteTitle: '黑暗潜能——极限压力下的道德滑坡',
+    notePoints: ['极端压力下能力激发的认知神经科学背景', '道德边界模糊化是本册最核心的叙事进展', '队友信任危机为后续剧情埋下关键伏笔', '读者情感的双重绑定（兴奋+不安）是本册最大叙事成就'],
+    noteExtra: '心流状态的认知机制；极端压力与决策变形；信任危机的团队心理学',
+    quote: '"黑暗不是从外面进来的，它一直在你里面等待被需要的那一刻。"',
+  },
+  '守夜者3': {
+    title: '守夜者3·生死盲点', author: '法医秦明（秦明）· 2020年',
+    series: '守夜者系列 · 第3册', seriesColor: '#17202a',
+    coverGrad: 'linear-gradient(135deg,#17202a,#1a252f)', coverText: '守夜者\n生死盲点',
+    tags: ['刑侦悬疑', '守夜者·第3册'],
+    stats: { cases: 7, chars: 5, points: 8, score: '★ 4.7' },
+    summary: '《守夜者3》案件进入死局，所有人都有盲点，主角必须突破自身认知局限找到出路。本册是守夜者系列结构最复杂的一册，多线叙事最终在出人意料的盲点处汇聚，产生强烈的叙事震撼。',
+    highlights: [
+      { type: '⚡ 盲点哲学', content: '盲点的本质是：你用来看世界的工具，恰恰遮蔽了某个特定方向。守夜者的超级视野同样有它无法看见的角落。', source: '《守夜者3》· 核心主题' },
+      { type: '🔬 认知局限', content: '专家盲点（Expert Blind Spot）：越是精通某个领域，越容易忽视该领域基础假设的错误——这是本册主角陷入死局的根本原因。', source: '《守夜者3》· 认知科学基础' },
+      { type: '💡 叙事高峰', content: '本册的反转设计是守夜者系列中最精巧的——真正的盲点在结局揭示时，读者会意识到线索早已在前文中完整呈现，只是被刻意引导忽视了。', source: '《守夜者3》· 叙事分析' },
+      { type: '🎭 成长节点', content: '接受自己的盲点，是守夜者系列中主角最重要的成长——比能力更重要的，是知道自己的局限在哪里。', source: '《守夜者3》· 人物成长' },
+    ],
+    noteTag: '🌙 《守夜者3》· 守夜者系列第3册', noteTitle: '突破盲点——认知局限的识别与超越',
+    notePoints: ['专家盲点的认知科学背景使本册具备独特的知识厚度', '系列中叙事结构最复杂、反转最精巧的一册', '多线汇聚的盲点揭示产生强烈的叙事震撼', '接受局限是主角成长弧的关键转折点'],
+    noteExtra: '专家盲点（Expert Blind Spot）认知机制；多线叙事的汇聚技法；反转设计的线索布局原则',
+    quote: '"最危险的不是看不见，而是以为自己已经看见了一切。"',
+  },
+  '守夜者4': {
+    title: '守夜者4·天演', author: '法医秦明（秦明）· 2021年',
+    series: '守夜者系列 · 第4册', seriesColor: '#0d1117',
+    coverGrad: 'linear-gradient(135deg,#0d1117,#17202a)', coverText: '守夜者\n天演',
+    tags: ['刑侦悬疑', '守夜者·第4册'],
+    stats: { cases: 8, chars: 6, points: 9, score: '★ 4.8' },
+    summary: '《守夜者4·天演》是守夜者系列终章，罪案终结者完成蜕变，以更成熟的姿态直面终极对手。"天演"取自进化论，隐喻主角在历经三册磨砺后的彻底蜕变，是守夜者系列最具史诗感的收官之作。',
+    highlights: [
+      { type: '⚡ 进化主题', content: '"天演"即适应性进化——守夜者的终极蜕变不是能力的无限强化，而是找到与自己天赋和平共处、与世界有效协作的方式。', source: '《守夜者4》· 主题核心' },
+      { type: '🔬 终极对手', content: '本册终极反派的设计是系列中最接近"镜像对手"的——他与守夜者拥有相似的天赋，走向了截然相反的道路，构成完美的命运对照。', source: '《守夜者4》· 反派设计' },
+      { type: '💡 系列收官', content: '终章采用"宏观收束"结构：不仅解决本册主案，更用守夜者的最终选择回答了整个系列的核心问题——天赋的意义是什么？', source: '《守夜者4》· 叙事收官' },
+      { type: '🎭 人物完成', content: '守夜者从第一册的孤僻少年到终章的成熟守夜者，四册的成长弧是法医秦明系列宇宙中最完整的人物蜕变旅程。', source: '《守夜者4》· 人物完成' },
+    ],
+    noteTag: '🌙 《守夜者4》· 守夜者系列终章', noteTitle: '天演——天赋的终极意义与完整蜕变',
+    notePoints: ['"天演"主题：适应性进化vs无限强化，成熟的核心是找到平衡', '镜像反派设计将守夜者的选择意义推至最高', '宏观收束结构完整回答了系列核心命题', '四册成长弧的完美收束是整个守夜者系列最大叙事成就'],
+    noteExtra: '进化论在人格发展理论中的应用；镜像人物设计技法；系列叙事的宏观收束结构',
+    quote: '"天演不是变成更强的自己，而是变成更完整的自己。"',
+  },
+  '法医之书': {
+    title: '法医之书', author: '法医秦明（秦明）· 2016年',
+    series: '非虚构 · 知识科普', seriesColor: '#27ae60',
+    coverGrad: 'linear-gradient(135deg,#27ae60,#1e8449)', coverText: '法医之书',
+    tags: ['非虚构', '法医科普'],
+    stats: { cases: 0, chars: 0, points: 20, score: '★ 4.9' },
+    summary: '《法医之书》是系列中唯一的非虚构作品，秦明以真实法医视角系统科普法医学知识。本书是整个系列的知识基础读本，读懂这本书，能让读者更深刻地理解其他19册虚构作品中的法医细节，是理解整个系列的最佳入门。',
+    highlights: [
+      { type: '📚 知识体系', content: '法医学的四大核心分支：法医病理学（死因鉴定）、法医毒理学（毒物检验）、法医人类学（骨骼鉴定）、法医精神病学（行为能力评估）。', source: '《法医之书》· 学科总览' },
+      { type: '🔬 核心技术', content: '现代法医鉴定的三大支柱：形态学（肉眼可见的伤情分析）、组织学（显微镜下的细胞变化）、分子生物学（DNA等基因层面的鉴定）。', source: '《法医之书》· 技术体系' },
+      { type: '💡 职业真相', content: '真实法医工作与影视中最大的差距：现实中法医几乎不参与案件侦破，只负责提供医学证据——"破案"是警察的事，"解读尸语"才是法医的本职。', source: '《法医之书》· 职业祛魅' },
+      { type: '📖 阅读价值', content: '读完这本书再读系列小说，你会发现秦明在每个细节上的用心——那些看似随意的法医描述，背后都有严格的科学依据。', source: '《法医之书》· 阅读建议' },
+    ],
+    noteTag: '📗 《法医之书》· 非虚构科普', noteTitle: '法医学完全图谱——理解整个系列的知识密码',
+    notePoints: ['法医学四大核心分支的系统介绍（病理/毒理/人类学/精神病学）', '现代法医鉴定三大技术支柱的专业科普', '真实法医职业与影视形象的系统对比与祛魅', '是理解其余19册虚构内容的最佳知识基础'],
+    noteExtra: '法医病理学基础；法医毒理学检验方法；DNA鉴定原理；死亡时间推断综合方法',
+    quote: '"死亡，是所有人最终的归宿；而法医，是这段旅程最后的见证者。"',
+  },
+};
+
+// ── 渲染右侧内容 ──
+function renderContent(bookKey) {
+  const b = BOOKS[bookKey];
+  if (!b) return;
+
+  // 更新header书名
+  document.querySelector('.header-book-name').textContent = b.title;
+
+  // ── 渲染摘要面板 ──
+  const summaryPanel = document.getElementById('panel-summary');
+  summaryPanel.innerHTML = `
+    <div class="summary-hero">
+      <div class="summary-book-header">
+        <div class="summary-cover" style="background:${b.coverGrad}">${b.coverText}</div>
+        <div class="summary-meta">
+          <div class="summary-title">《${b.title}》</div>
+          <div class="summary-author">作者：${b.author}</div>
+          <div class="summary-tags">
+            ${b.tags.map(t => `<span class="tag tag-genre">${t}</span>`).join('')}
+            <span class="tag tag-ai">AI 已解析</span>
+          </div>
+        </div>
+      </div>
+      <div class="ai-summary-label">
+        <div class="ai-icon">✦</div>
+        AI 生成摘要
+      </div>
+      <div class="summary-text">${b.summary}</div>
+      <div class="summary-stats">
+        ${b.stats.cases > 0 ? `<div class="stat-item"><div class="stat-num">${b.stats.cases}</div><div class="stat-label">收录案例数</div></div>` : ''}
+        ${b.stats.chars > 0 ? `<div class="stat-item"><div class="stat-num">${b.stats.chars}</div><div class="stat-label">核心人物</div></div>` : ''}
+        <div class="stat-item"><div class="stat-num">${b.stats.points}</div><div class="stat-label">知识点数</div></div>
+        <div class="stat-item"><div class="stat-num">${b.stats.score}</div><div class="stat-label">读者评分</div></div>
+      </div>
+    </div>
+    <div class="section-title">全系列概览</div>
+    <div class="series-grid">
+      <div class="series-card">
+        <div class="series-card-title"><div class="series-dot" style="background:#c0392b"></div>法医秦明主系列</div>
+        <div class="series-card-count" style="color:#c0392b">11册</div>
+        <div class="series-card-desc">以省厅法医秦明为主角，搭档大宝、林涛，从尸语者到逝者之书，记录职业成长与人性探索</div>
+      </div>
+      <div class="series-card">
+        <div class="series-card-title"><div class="series-dot" style="background:#ff6b35"></div>燃烧的蜂鸟系列</div>
+        <div class="series-card-count" style="color:#ff6b35">3册</div>
+        <div class="series-card-desc">跨年代悬案叙事，1985/1990年代历史案件与现代调查交织，视野更宏观，节奏更快</div>
+      </div>
+      <div class="series-card">
+        <div class="series-card-title"><div class="series-dot" style="background:#2c3e50"></div>守夜者系列</div>
+        <div class="series-card-count" style="color:#2c3e50">4册</div>
+        <div class="series-card-desc">新主角"罪案终结者"登场，天赋异禀但孤僻，4册完整记录觉醒、成长到蜕变的历程</div>
+      </div>
+    </div>
+  `;
+
+  // 强制触发动画重绘
+  summaryPanel.querySelectorAll('.summary-hero, .series-card').forEach((el, i) => {
+    el.style.animation = 'none';
+    el.offsetHeight; // 触发重排
+    el.style.animation = '';
+    if (el.classList.contains('series-card')) el.style.animationDelay = (i * 0.1) + 's';
+  });
+
+  // ── 渲染重点抽取面板 ──
+  const hlPanel = document.getElementById('panel-highlights');
+  const hlColors = ['#f5a623','#ff6b35','#3d7eff','#7c5cbf','#07c160'];
+  hlPanel.innerHTML = b.highlights.map((h, i) => `
+    <div class="highlight-item" style="border-left-color:${hlColors[i % hlColors.length]}">
+      <div class="highlight-type">${h.type}</div>
+      <div class="highlight-content">${h.content}</div>
+      <div class="highlight-source">来源：《${b.title}》· ${h.source.replace(/《.*?》· /,'')}</div>
+    </div>
+  `).join('');
+  // 触发动画
+  hlPanel.querySelectorAll('.highlight-item').forEach((el, i) => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = '';
+    el.style.animationDelay = (i * 0.06) + 's';
+  });
+
+  // ── 渲染结构化笔记面板 ──
+  const notesPanel = document.getElementById('panel-notes');
+  notesPanel.innerHTML = `
+    <div class="note-card">
+      <div class="note-book-tag">${b.noteTag}</div>
+      <div class="note-heading">${b.noteTitle}</div>
+      <div class="note-section">
+        <div class="note-section-title">核心要点</div>
+        <ul class="note-points">
+          ${b.notePoints.map(p => `<li class="note-point">${p}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="note-section">
+        <div class="note-section-title">经典引言</div>
+        <div class="note-quote">${b.quote}</div>
+      </div>
+      <div class="note-section">
+        <div class="note-section-title">法医 / 专业知识点</div>
+        <ul class="note-points">
+          ${b.noteExtra.split('；').map(p => `<li class="note-point">${p}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+// ── BOOK SELECTION ──
+function selectBook(el, bookKey) {
+  document.querySelectorAll('.book-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  renderContent(bookKey);
+  // 如果当前在关系图tab，重绘
+  if (document.getElementById('panel-graph').classList.contains('active')) {
+    setTimeout(drawGraph, 50);
+  }
+}
+
+// 初始化渲染第一本书
+renderContent('尸语者');
+
+// ── KNOWLEDGE GRAPH ──
+const nodes = [
+  { id: 'qinming', label: '法医秦明', x: 50, y: 45, r: 38, color: '#c0392b', desc: '主角·省厅法医\n严谨、敏锐、职业感强\n贯穿主系列全11册' },
+  { id: 'dabao', label: '大宝', x: 25, y: 30, r: 28, color: '#2980b9', desc: '秦明搭档·刑警\n幽默担当，烘托氛围\n出现于主系列全程' },
+  { id: 'lintao', label: '林涛', x: 22, y: 62, r: 26, color: '#2980b9', desc: '痕检专家\n与秦明形成技术互补\n理性冷静' },
+  { id: 'forensic', label: '法医鉴定', x: 72, y: 25, r: 30, color: '#16a085', desc: '核心技术能力\n伤口分析·死因判断\n现场重建·毒理检验' },
+  { id: 'scene', label: '现场勘查', x: 78, y: 55, r: 26, color: '#16a085', desc: '案件起点\n微物证据提取\n现场逻辑还原' },
+  { id: 'dna', label: 'DNA检验', x: 65, y: 72, r: 22, color: '#16a085', desc: '现代刑侦核心手段\n蜂鸟系列强调\n年代对比的关键' },
+  { id: 'murder', label: '他杀伪装', x: 38, y: 18, r: 24, color: '#8e44ad', desc: '最高频案件类型\n伪装意外/自杀\n系列核心冲突来源' },
+  { id: 'psychology', label: '犯罪心理', x: 82, y: 38, r: 22, color: '#8e44ad', desc: '偷窥者·玩偶等重点呈现\n行为分析与画像\n人性黑暗面探索' },
+  { id: 'history', label: '历史悬案', x: 18, y: 80, r: 24, color: '#f39c12', desc: '蜂鸟系列核心主题\n1985·1990年代案件\n时代背景还原' },
+  { id: 'justice', label: '替死者发声', x: 48, y: 78, r: 26, color: '#f39c12', desc: '全系列精神内核\n法医职业的终极意义\n逝者之书收官主题' },
+  { id: 'guardian', label: '罪案终结者', x: 30, y: 50, r: 24, color: '#7f8c8d', desc: '守夜者系列主角\n天赋异禀但孤僻\n4册完整成长弧' },
+];
+
+const edges = [
+  ['qinming', 'dabao'], ['qinming', 'lintao'],
+  ['qinming', 'forensic'], ['qinming', 'justice'],
+  ['qinming', 'murder'], ['forensic', 'scene'],
+  ['forensic', 'dna'], ['scene', 'murder'],
+  ['psychology', 'murder'], ['psychology', 'forensic'],
+  ['history', 'dna'], ['history', 'justice'],
+  ['guardian', 'justice'], ['guardian', 'psychology'],
+  ['lintao', 'scene'], ['dna', 'history'],
+];
+
+function drawGraph() {
+  const canvas = document.getElementById('graphCanvas');
+  const svg = document.getElementById('graphSvg');
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+
+  // clear
+  svg.innerHTML = '';
+  canvas.querySelectorAll('.graph-node, .graph-node-label').forEach(e => e.remove());
+
+  // draw edges
+  edges.forEach(([a, b]) => {
+    const na = nodes.find(n => n.id === a);
+    const nb = nodes.find(n => n.id === b);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', na.x / 100 * W);
+    line.setAttribute('y1', na.y / 100 * H);
+    line.setAttribute('x2', nb.x / 100 * W);
+    line.setAttribute('y2', nb.y / 100 * H);
+    line.setAttribute('stroke', '#e0e0da');
+    line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  });
+
+  // draw nodes
+  const tooltip = document.getElementById('tooltip');
+  nodes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'graph-node';
+    el.style.cssText = `
+      width:${n.r*2}px; height:${n.r*2}px;
+      left:${n.x/100*W - n.r}px; top:${n.y/100*H - n.r}px;
+      background:${n.color};
+      font-size:${n.r > 30 ? 11 : 10}px;
+    `;
+    el.textContent = n.label;
+
+    el.addEventListener('mouseenter', e => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = n.desc.replace(/\n/g, '<br>');
+    });
+    el.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+    });
+    el.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+
+    canvas.appendChild(el);
+  });
+}
+
+// init：关系图面板初始隐藏，不立即绘制，等切换到该Tab时再绘制
+window.addEventListener('resize', () => {
+  if (document.getElementById('panel-graph').classList.contains('active')) drawGraph();
+});
+</script>
+</body>
+</html>
